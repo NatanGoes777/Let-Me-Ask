@@ -2,10 +2,11 @@ import logoImg from '../assets/images/logo.svg';
 import { Button } from '../components/Button';
 import '../styles/room.scss';
 import { RoomCode } from '../components/RoomCode';
-import {useParams} from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { FormEvent, useEffect, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { database } from '../services/firebase';
+import { Question } from '../components/Question';
 
 type RoomParams = {
     id: string;
@@ -21,7 +22,7 @@ type FirebaseQuestions = Record<string, {
     isHighlighted: boolean;
 }>
 
-type Question = {
+type QuestionType = {
     id: string;
     author: {
         name: string;
@@ -37,7 +38,7 @@ export function Room() {
     const roomId = params.id;
     const [newQuestion, setNewQuestion] = useState('');
     const { user } = useAuth();
-    const [questions, setQuestions] = useState<Question[]>([]);
+    const [questions, setQuestions] = useState<QuestionType[]>([]);
     const [title, setTitle] = useState('');
 
     useEffect(() => {
@@ -48,7 +49,7 @@ export function Room() {
             const firebaseQuestions: FirebaseQuestions = databaseRoom.questions ?? {};
 
             const parsedQuestions = Object.entries(firebaseQuestions).map(([key, value]) => {
-                return{
+                return {
                     id: key,
                     content: value.content,
                     author: value.author,
@@ -62,14 +63,14 @@ export function Room() {
         })
     }, [roomId])
 
-    async function handleSendQuestion(event: FormEvent){
+    async function handleSendQuestion(event: FormEvent) {
         event.preventDefault();
 
-        if(newQuestion.trim() === ''){
+        if (newQuestion.trim() === '') {
             return;
         }
 
-        if(!user){
+        if (!user) {
             throw new Error('You must be logged in');
         }
 
@@ -84,7 +85,7 @@ export function Room() {
         };
 
         await database.ref(`rooms/${roomId}/questions`).push(question);
-    
+
         setNewQuestion('');
     }
 
@@ -93,7 +94,7 @@ export function Room() {
             <header>
                 <div className="content">
                     <img src={logoImg} alt="Letmeask" />
-                    <RoomCode code={roomId}/>
+                    <RoomCode code={roomId} />
                 </div>
             </header>
 
@@ -104,26 +105,36 @@ export function Room() {
                 </div>
 
                 <form onSubmit={handleSendQuestion}>
-                    <textarea 
+                    <textarea
                         placeholder="O que você quer perguntar ?"
                         onChange={event => setNewQuestion(event.target.value)}
                         value={newQuestion}
                     />
 
                     <div className="form-footer">
-                        { user ? (
+                        {user ? (
                             <div className="user-info">
-                                <img src={user.avatar} alt={user.name}/>
+                                <img src={user.avatar} alt={user.name} />
                                 <span>{user.name}</span>
                             </div>
                         ) : (
                             <span>Para enviar uma pergunta, <button>faça seu login</button>.</span>
-                        ) }
+                        )}
                         <Button type="submit" disabled={!user}>Enviar pergunta</Button>
                     </div>
                 </form>
 
-                {JSON.stringify(questions)}
+                <div className="question-list">
+                    {questions.map(question => {
+                        return (
+                            <Question
+                                key={question.id}
+                                content={question.content}
+                                author={question.author}
+                            />
+                        )
+                    })}
+                </div>
             </main>
         </div>
     );
